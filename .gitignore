@@ -1,0 +1,28 @@
+# Timestamped run outputs (keep the Results folder, ignore generated runs)
+Results/run-*/
+
+# Secrets and credentials (never commit)
+*.env
+.env
+.env.*
+config.toml
+.proposal-judge-state.json
+*.pem
+*.key
+*.pfx
+*.p12
+
+# Python virtual environments and caches
+.venv/
+venv/
+__pycache__/
+*.pyc
+*.egg-info/
+
+# SharePoint local cache/staging
+.sharepoint-cache/
+
+# Local environment noise
+*.tmp
+Thumbs.db
+.DS_Store

@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json-schema.org/draft-07/schema#",
+  "description": "Configuration for the AI-First Proposal Judge. Each artefact has its own path. Point the *Path values at local folders (which may be synced OneDrive/SharePoint folders). To pull/push artefacts directly from SharePoint Online instead, set sharepoint.enabled = true and fill in the sharepoint.* library folders; the *Path values then act as the local cache/staging locations. See docs/AUTOMATION-AND-DISTRIBUTION.md.",
+  "knowledgePath": "Knowledge",
+  "submissionsPath": "WorkShopSubmission",
+  "resultsPath": "Results",
+  "timestampResults": true,
+  "resultsRunPrefix": "run",
+  "acceptedExtensions": [
+    ".docx", ".doc", ".pptx", ".ppt",
+    ".txt", ".md",
+    ".html", ".htm", ".css", ".scss", ".js", ".mjs", ".cjs", ".ts", ".tsx", ".jsx",
+    ".vue", ".svelte", ".razor", ".cshtml", ".json",
+    ".py", ".cs", ".java", ".go", ".rb", ".php", ".sql", ".yaml", ".yml", ".xml", ".svg",
+    ".png", ".jpg", ".jpeg", ".gif", ".webp"
+  ],
+  "sharepoint": {
+    "enabled": false,
+    "siteUrl": "https://contoso.sharepoint.com/sites/ManagerDay",
+    "knowledgeFolder": "Shared Documents/ManagerDay/Knowledge",
+    "submissionsFolder": "Shared Documents/ManagerDay/Submissions",
+    "resultsFolder": "Shared Documents/ManagerDay/Results",
+    "clientId": "",
+    "tenantId": "",
+    "auth": "interactive"
+  }
+}
