@@ -1,0 +1,63 @@
+{
+  "runId": "run-20260909-155943",
+  "createdUtc": "2026-09-09T10:30:14.0885678Z",
+  "submissionsPath": "C:\\code\\AI-First Proposal Judge\\WorkShopSubmission",
+  "resultsPath": "C:\\code\\AI-First Proposal Judge\\Results\\run-20260909-155943",
+  "intakePath": "C:\\code\\AI-First Proposal Judge\\Results\\run-20260909-155943\\intake",
+  "teams": [
+    {
+      "name": "Team A",
+      "path": "C:\\code\\AI-First Proposal Judge\\WorkShopSubmission\\Team A",
+      "intake": "C:\\code\\AI-First Proposal Judge\\Results\\run-20260909-155943\\intake\\Team_A.md",
+      "fileCount": 12,
+      "files": [
+        "C:\\code\\AI-First Proposal Judge\\WorkShopSubmission\\Team A\\business-requirements.docx",
+        "C:\\code\\AI-First Proposal Judge\\WorkShopSubmission\\Team A\\delivery-control-workbook.xlsx",
+        "C:\\code\\AI-First Proposal Judge\\WorkShopSubmission\\Team A\\index.html",
+        "C:\\code\\AI-First Proposal Judge\\WorkShopSubmission\\Team A\\package-manifest.json",
+        "C:\\code\\AI-First Proposal Judge\\WorkShopSubmission\\Team A\\prototype-v1.html",
+        "C:\\code\\AI-First Proposal Judge\\WorkShopSubmission\\Team A\\prototype-v2-preview.png",
+        "C:\\code\\AI-First Proposal Judge\\WorkShopSubmission\\Team A\\prototype-v2.html",
+        "C:\\code\\AI-First Proposal Judge\\WorkShopSubmission\\Team A\\README.txt",
+        "C:\\code\\AI-First Proposal Judge\\WorkShopSubmission\\Team A\\source-context.txt",
+        "C:\\code\\AI-First Proposal Judge\\WorkShopSubmission\\Team A\\steerco-pitch.pptx",
+        "C:\\code\\AI-First Proposal Judge\\WorkShopSubmission\\Team A\\steerco-readiness-summary.txt",
+        "C:\\code\\AI-First Proposal Judge\\WorkShopSubmission\\Team A\\workshop-and-delivery-handbook.docx"
+      ],
+      "unavailable": 0
+    },
+    {
+      "name": "TEAM B",
+      "path": "C:\\code\\AI-First Proposal Judge\\WorkShopSubmission\\TEAM B",
+      "intake": "C:\\code\\AI-First Proposal Judge\\Results\\run-20260909-155943\\intake\\TEAM_B.md",
+      "fileCount": 4,
+      "files": [
+        "C:\\code\\AI-First Proposal Judge\\WorkShopSubmission\\TEAM B\\Contoso Retail BRD - Customer Care and Order Exception Resolution.docx",
+        "C:\\code\\AI-First Proposal Judge\\WorkShopSubmission\\TEAM B\\Contoso Retail Delivery Backlog - Customer Care and Order Exception Resolution.xlsx",
+        "C:\\code\\AI-First Proposal Judge\\WorkShopSubmission\\TEAM B\\contoso-order-exception-prototype-v1.html",
+        "C:\\code\\AI-First Proposal Judge\\WorkShopSubmission\\TEAM B\\contoso-retail-order-exception-resolution-prototype-context.md"
+      ],
+      "unavailable": 0
+    },
+    {
+      "name": "TEAM C",
+      "path": "C:\\code\\AI-First Proposal Judge\\WorkShopSubmission\\TEAM C",
+      "intake": "C:\\code\\AI-First Proposal Judge\\Results\\run-20260909-155943\\intake\\TEAM_C.md",
+      "fileCount": 1,
+      "files": [
+        "C:\\code\\AI-First Proposal Judge\\WorkShopSubmission\\TEAM C\\Contoso Pharma - Pitch Deck - Soumya Kanti Banerjee.pptx"
+      ],
+      "unavailable": 0
+    },
+    {
+      "name": "TEAM D",
+      "path": "C:\\code\\AI-First Proposal Judge\\WorkShopSubmission\\TEAM D",
+      "intake": "C:\\code\\AI-First Proposal Judge\\Results\\run-20260909-155943\\intake\\TEAM_D.md",
+      "fileCount": 1,
+      "files": [
+        "C:\\code\\AI-First Proposal Judge\\WorkShopSubmission\\TEAM D\\Newpresales.pptx"
+      ],
+      "unavailable": 0
+    }
+  ]
+}

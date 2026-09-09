@@ -1,13 +1,16 @@
 {
   "$schema": "https://json-schema.org/draft-07/schema#",
-  "description": "Configuration for the AI-First Proposal Judge. Each artefact has its own path. Point the *Path values at local folders (which may be synced OneDrive/SharePoint folders). To pull/push artefacts directly from SharePoint Online instead, set sharepoint.enabled = true and fill in the sharepoint.* library folders; the *Path values then act as the local cache/staging locations. See docs/AUTOMATION-AND-DISTRIBUTION.md.",
+  "description": "Configuration for the AI-First Proposal Judge. knowledgePath plus knowledgeFile identify the single authoritative grounding file. Point the *Path values at local folders (which may be synced OneDrive/SharePoint folders). To pull/push artefacts directly from SharePoint Online instead, set sharepoint.enabled = true and fill in the sharepoint.* library folders; the *Path values then act as local cache/staging locations. submissionMode 'folderPerTeam' means each immediate subfolder of submissionsPath is one team whose accepted files form that team's submission; loose files at the root are single-file teams. maxParallelTeams bounds concurrent team evaluations. See docs/AUTOMATION-AND-DISTRIBUTION.md.",
   "knowledgePath": "Knowledge",
+  "knowledgeFile": "manager-day-contoso-challenges.md",
   "submissionsPath": "WorkShopSubmission",
   "resultsPath": "Results",
   "timestampResults": true,
   "resultsRunPrefix": "run",
+  "submissionMode": "folderPerTeam",
+  "maxParallelTeams": 4,
   "acceptedExtensions": [
-    ".docx", ".doc", ".pptx", ".ppt",
+    ".docx", ".doc", ".pptx", ".ppt", ".xlsx", ".xls", ".csv",
     ".txt", ".md",
     ".html", ".htm", ".css", ".scss", ".js", ".mjs", ".cjs", ".ts", ".tsx", ".jsx",
     ".vue", ".svelte", ".razor", ".cshtml", ".json",

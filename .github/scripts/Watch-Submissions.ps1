@@ -64,30 +64,45 @@ function New-Run {
     $intake = Join-Path $runFolder 'intake'
     New-Item -ItemType Directory -Path $intake -Force | Out-Null
 
-    $files = Get-ChildItem -LiteralPath $submissionsPath -File |
-        Where-Object { $accepted -contains $_.Extension.ToLowerInvariant() }
+    # Discover teams. Each immediate subfolder is a team; loose accepted files at the
+    # root are single-file teams. Copy each team's files into intake for an immutable record.
+    $teams = [System.Collections.Generic.List[object]]::new()
 
-    if (-not $files) {
+    foreach ($dir in (Get-ChildItem -LiteralPath $submissionsPath -Directory)) {
+        $teamFiles = Get-ChildItem -LiteralPath $dir.FullName -File -Recurse |
+            Where-Object { $accepted -contains $_.Extension.ToLowerInvariant() }
+        if (-not $teamFiles) { continue }
+        $dest = Join-Path $intake $dir.Name
+        New-Item -ItemType Directory -Path $dest -Force | Out-Null
+        foreach ($file in $teamFiles) { Copy-Item -LiteralPath $file.FullName -Destination $dest -Force }
+        $teams.Add([ordered]@{ team = $dir.Name; files = @($teamFiles | ForEach-Object { $_.Name }) })
+    }
+
+    foreach ($file in (Get-ChildItem -LiteralPath $submissionsPath -File |
+            Where-Object { $accepted -contains $_.Extension.ToLowerInvariant() })) {
+        Copy-Item -LiteralPath $file.FullName -Destination $intake -Force
+        $teams.Add([ordered]@{ team = [System.IO.Path]::GetFileNameWithoutExtension($file.Name); files = @($file.Name) })
+    }
+
+    if ($teams.Count -eq 0) {
         Write-Host "No accepted submissions found in $submissionsPath. Nothing to stage."
         Remove-Item -LiteralPath $runFolder -Recurse -Force
         return
     }
 
-    foreach ($file in $files) { Copy-Item -LiteralPath $file.FullName -Destination $intake -Force }
-
     $manifest = [ordered]@{
-        runId          = "$($config.resultsRunPrefix)-$stamp"
-        createdUtc     = (Get-Date).ToUniversalTime().ToString('o')
+        runId           = "$($config.resultsRunPrefix)-$stamp"
+        createdUtc      = (Get-Date).ToUniversalTime().ToString('o')
         submissionsPath = $submissionsPath
-        intakePath     = $intake
-        resultsPath    = $runFolder
-        submissions    = @($files | ForEach-Object { $_.Name })
+        intakePath      = $intake
+        resultsPath     = $runFolder
+        teams           = @($teams)
     }
-    $manifest | ConvertTo-Json -Depth 5 | Set-Content -Path (Join-Path $runFolder 'run-manifest.json') -Encoding UTF8
+    $manifest | ConvertTo-Json -Depth 6 | Set-Content -Path (Join-Path $runFolder 'run-manifest.json') -Encoding UTF8
 
     Write-Host ''
     Write-Host "Staged run: $runFolder"
-    Write-Host "Submissions ($($files.Count)): $($manifest.submissions -join ', ')"
+    Write-Host "Teams ($($teams.Count)): $(($teams | ForEach-Object { $_.team }) -join ', ')"
     Write-Host ''
     Write-Host "NEXT STEP (a human runs the AI judging): open VS Code chat in this repo and type:"
     Write-Host "    /judge-proposals" -ForegroundColor Cyan
@@ -102,7 +117,7 @@ if ($Once) { return }
 Write-Host "Watching $submissionsPath for new submissions. Press Ctrl+C to stop."
 $watcher = New-Object System.IO.FileSystemWatcher
 $watcher.Path = $submissionsPath
-$watcher.IncludeSubdirectories = $false
+$watcher.IncludeSubdirectories = $true
 $watcher.NotifyFilter = [System.IO.NotifyFilters]::FileName -bor [System.IO.NotifyFilters]::LastWrite
 $watcher.EnableRaisingEvents = $true
 

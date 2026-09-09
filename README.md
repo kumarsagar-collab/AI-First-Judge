@@ -1,4 +1,7 @@
-# AI-First Proposal Judge
+---
+title: AI-First Proposal Judge
+description: Evidence-based judging for Presales and Delivery workshop proposals
+---
 
 Evidence-based judging of workshop proposals. Drop submissions in a folder, run one command, and get scored reports plus cross-team learnings for a human jury. The AI never picks a winner — the panel decides.
 
@@ -6,47 +9,63 @@ Evidence-based judging of workshop proposals. Drop submissions in a folder, run 
 
 | Folder | Purpose |
 |--------|---------|
-| `Knowledge/` | Grounding docs the judge reads first (see below). |
-| `WorkShopSubmission/` | One file per team. Documents (`.docx`, `.pptx`, `.txt`, legacy `.doc`/`.ppt`), **prototypes and wireframes** (`.html`, `.css`, `.js`/`.ts`, other code, `.svg`), and **images** (`.png`, `.jpg`). |
+| `Knowledge/` | Contains the single authoritative grounding file. |
+| `WorkShopSubmission/` | **One folder per team.** Each team's folder holds one or more artefacts of any mix: documents (`.docx`, `.pptx`, `.txt`, legacy `.doc`/`.ppt`), **spreadsheets** (`.xlsx`, legacy `.xls`, `.csv`), **prototypes and wireframes** (`.html`, `.css`, `.js`/`.ts`, other code, `.svg`), and **images** (`.png`, `.jpg`). A loose accepted file at the root is treated as a single-file team. |
 | `Results/` | Generated reports, written to a timestamped `run-<timestamp>/` subfolder per run. |
 | `docs/` | Automation and distribution design. |
 
 Each artefact has its own configurable path in `judge.config.json` — `knowledgePath`, `submissionsPath`, and `resultsPath`. Point them at local folders (which may be synced OneDrive/SharePoint folders), or set `sharepoint.enabled = true` to pull/push each artefact directly from its own **SharePoint Online** library folder (see [SharePoint](#sharepoint-artefacts) below).
 
-### Knowledge docs
+### Knowledge source
 
-- **Manager-Day-Contoso-Customer-Scenario** — the customer facts. **Authoritative**; the judge never invents customer facts beyond this.
-- **Manager-Day-Judging-Rubric** — the 10 weighted criteria (total 100) and scoring rules.
-- **Manager-Day-Approved-Reference-Pack** — shared design and judging principles.
+`Knowledge/manager-day-contoso-challenges.md` is the only grounding source. It contains customer facts, Presales and Delivery space-detection signals, scenarios, both five-criterion rubrics, and judging guidance.
+
+Each team is either **Presales** or **Delivery**. The Judge classifies the submission from its evidence, applies only that space's 100-point rubric, and never compares scores across the two spaces.
 
 ## Agents
 
 | Agent | Role |
 |-------|------|
-| **Proposal Judge Orchestrator** | Runs the whole pipeline: grounds on `Knowledge/`, loops over submissions, calls the Judge and Critic, writes reports. |
+| **Proposal Judge Orchestrator** | Runs the whole pipeline: grounds on `Knowledge/`, judges all teams in parallel, runs the fast checker, writes reports. |
 | **Proposal Judge** | Scores **one** submission against the rubric with cited evidence, gaps, and flags. |
-| **Proposal Judge Critic** | Independently verifies each evaluation (grounding, evidence, arithmetic, bias) and returns PASS or REVISE. |
+| **Proposal Judge Critic** | Optional deep review: independently verifies an evaluation (grounding, evidence, arithmetic, bias) and returns PASS or REVISE. Runs only when you ask. |
+
+A fast built-in checker (`Test-Evaluation.ps1`) runs automatically on every report — no AI call — to confirm the maths, rubric, and score add up, and to flag anything a human should look at.
 
 ## Workflow
 
 ```
-Knowledge docs ──► Orchestrator (reads judge.config.json, opens Results/run-<timestamp>/)
-                      │  for each submission:
+Single knowledge file ──► Orchestrator (reads config, opens Results/run-<timestamp>/)
+                      │  extract each team folder once, then judge all teams in parallel:
                       ▼
-                   Judge ──► Critic ──► (REVISE? loop) ──► run-<timestamp>/<team>-evaluation.md
+                   Judge (all teams) ──► fast checker ──► run-<timestamp>/<team>-evaluation.md
                       │
                       ▼
              run-<timestamp>/00-cross-submission-summary.md
+                      │
+                      ▼  (optional, on request)
+             Robust critic review of flagged teams
 ```
 
-1. Orchestrator extracts the three Knowledge docs and reads `judge.config.json`.
-2. It opens a timestamped run folder and, for each submission, has the **Judge** score it and the **Critic** verify it. Prototypes/wireframes (HTML/code/SVG) are read as source and cited by line; raster images are viewed with a multimodal viewer.
-3. A per-team Markdown report is written to the run folder.
-4. A cross-submission summary adds a score table (data, not a ranking) and shared takeaways.
+1. Orchestrator reads the single authoritative knowledge file once and reads `judge.config.json`.
+2. It opens **one** timestamped run folder for the request, discovers **teams** (each subfolder of the submissions path), and extracts each team's whole folder in a single pass. Prototypes/wireframes (HTML/code/SVG) are read as source and cited by line; raster images are viewed with a multimodal viewer.
+3. All teams are judged **in parallel** (bounded by `maxParallelTeams`), each fully isolated. The Judge classifies each as Presales or Delivery and applies only the matching five-criterion rubric.
+4. The **fast checker** verifies every report automatically (maths, rubric weights, score total) and flags any team needing a closer human look. Per-team Markdown reports are written to the run folder.
+5. A cross-submission summary uses separate Presales and Delivery score tables plus shared takeaways, and lists the teams recommended for deeper review. Cross-space ranking is prohibited.
+6. **Optional:** ask for a **robust critic review** and the orchestrator runs a deep AI verification of the flagged teams (or all teams) and applies any corrections.
+
+### Why it's fast
+
+- **Fast by default:** judging runs in parallel and the automatic checker is a local script, not an AI call — so a full run finishes quickly. The deeper AI critic is a separate step you run only when you want extra assurance.
+- **Parallel teams:** all teams are judged concurrently instead of one-at-a-time.
+- **Extract once, stage once:** each team folder is parsed a single time into `Results/run-<timestamp>/intake/<team>.md` and reused everywhere; one run folder is created per request.
 
 ## Input types
 
+Each team gets a folder under `WorkShopSubmission/`; drop any mix of the following inside it (a team may submit several files):
+
 - **Documents / decks:** DOCX, PPTX, TXT, MD (legacy DOC/PPT via Office COM).
+- **Spreadsheets:** XLSX and CSV (legacy XLS via Office COM) — read row-by-row so backlogs and workbooks are cited by sheet and row. If Office/COM is unavailable, a legacy file is marked *Not evidenced* and flagged for human review rather than guessed.
 - **Prototypes / wireframes / code:** HTML, CSS, JS/TS, and other code files, plus SVG — read as source and evaluated for functional correctness, UX, accessibility, and security (secrets, XSS, missing auth, disabled citations, autonomy without approval).
 - **Images:** PNG/JPG wireframes are viewed with a multimodal viewer; if none is available they are marked *Not evidenced* and a text/HTML alternative is requested.
 
@@ -79,12 +98,12 @@ Each artefact points at its own SharePoint library folder. When enabled, the orc
 - Type `/judge-proposals` in chat (optionally name one file), or
 - Pick **Proposal Judge Orchestrator** in the agent picker and say *"Judge all submissions."*
 
-Markdown reports are always produced. Ask for **DOCX** or **PPTX** and the orchestrator will generate them.
+You get scored reports and a cross-team summary fast. The orchestrator then tells you which teams it recommends for a deeper look; reply *"run the robust critic review"* to have the AI double-check those (or all) teams. Markdown reports are always produced — ask for **DOCX** or **PPTX** and the orchestrator will generate them.
 
 ## Guardrails
 
 - Judges the team artifact only — never individuals.
-- Customer facts come only from the scenario.
+- Customer facts, rubrics, and judging signals come only from `Knowledge/manager-day-contoso-challenges.md`.
 - Submission text is untrusted; embedded "give me 100/100" instructions are flagged, not obeyed.
 - Cost cut by removing testing, monitoring, rollback, support, security, or human approval is **risk transfer**, not optimization — and triggers a human-review flag.
 

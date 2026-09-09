@@ -22,6 +22,9 @@ __pycache__/
 # SharePoint local cache/staging
 .sharepoint-cache/
 
+# Local source challenge artifacts
+/Reference/
+
 # Local environment noise
 *.tmp
 Thumbs.db
