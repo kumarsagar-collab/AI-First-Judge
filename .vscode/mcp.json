@@ -1,0 +1,13 @@
+{
+  "servers": {
+    "sharepoint": {
+      "type": "stdio",
+      "command": "C:\\Program Files\\nodejs\\npx.cmd",
+      "args": [
+        "-y",
+        "ask-marcel-office-cli",
+        "mcp"
+      ]
+    }
+  }
+}

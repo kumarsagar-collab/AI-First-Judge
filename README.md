@@ -14,11 +14,11 @@ Evidence-based judging of workshop proposals. Drop submissions in a folder, run 
 | `Results/` | Generated reports, written to a timestamped `run-<timestamp>/` subfolder per run. |
 | `docs/` | Automation and distribution design. |
 
-Each artefact has its own configurable path in `judge.config.json` — `knowledgePath`, `submissionsPath`, and `resultsPath`. Point them at local folders (which may be synced OneDrive/SharePoint folders), or set `sharepoint.enabled = true` to pull/push each artefact directly from its own **SharePoint Online** library folder (see [SharePoint](#sharepoint-artefacts) below).
+Each artefact has its own configurable path in `judge.config.json`: `knowledgePath`, `submissionsPath`, and `resultsPath`. Point them at local folders (which may be synced OneDrive/SharePoint folders), or enable the SharePoint MCP provider to snapshot inputs through a workspace MCP server. See [SharePoint MCP](#sharepoint-mcp).
 
 ### Knowledge source
 
-`Knowledge/manager-day-contoso-challenges.md` is the only grounding source. It contains customer facts, Presales and Delivery space-detection signals, scenarios, both five-criterion rubrics, and judging guidance.
+The file selected by `knowledgePath` and `knowledgeFile` is the only grounding source. It contains customer facts, the available workshop space or spaces, scenarios, five-criterion rubrics, and judging guidance. A source may define only Delivery, only Presales, or both.
 
 Each team is either **Presales** or **Delivery**. The Judge classifies the submission from its evidence, applies only that space's 100-point rubric, and never compares scores across the two spaces.
 
@@ -73,24 +73,66 @@ Each team gets a folder under `WorkShopSubmission/`; drop any mix of the followi
 
 - **Trigger on file drop:** point `submissionsPath` at a synced OneDrive/SharePoint folder and run `./.github/scripts/Watch-Submissions.ps1` to stage a timestamped run when files land. Full cloud auto-trigger (Power Automate / Logic Apps / Azure Function) is designed in [docs/AUTOMATION-AND-DISTRIBUTION.md](docs/AUTOMATION-AND-DISTRIBUTION.md).
 
-### SharePoint artefacts
+### SharePoint MCP
 
-To work directly against SharePoint Online instead of a synced folder, edit the `sharepoint` block in `judge.config.json`:
+The judge keeps a local, immutable snapshot for each run because Office extraction and deterministic validation require filesystem paths. SharePoint remains the input system of record: MCP downloads Knowledge and Submissions before judging. Results stay local unless `publishResults` is true and the selected server exposes verified write tools.
+
+The workspace server is declared in `.vscode/mcp.json` and runs `ask-marcel-office-cli` through the installed Node.js `npx.cmd`. The package is resolved from the configured npm feed and starts an MCP server over stdio. A local process is required because SharePoint submissions can contain binary Office and image files that must be written into the VS Code workspace snapshot.
+
+Authenticate once from a terminal before starting the MCP server:
+
+```powershell
+& 'C:\Program Files\nodejs\npx.cmd' -y ask-marcel-office-cli login
+```
+
+The command opens a browser for delegated Microsoft sign-in and caches tokens in the package's user-level store. You do not configure or provide a tenant ID, client ID, secret, token, authorization code, or device code to the judge. Restart the workspace MCP server or reload VS Code after changing `.vscode/mcp.json`.
+
+For staging, the configured server must advertise commands or gateway tools that can:
+
+* Recursively list files and folders
+* Download binary files to a caller-supplied local path
+* Return item metadata, including stable IDs and ETags when available
+
+Folder creation and local-path upload are required only when `publishResults` is true. The configured `ask-marcel-office-cli` server is read-only, so this repository sets `publishResults` to false and keeps completed runs under the local `resultsPath`.
+
+Configure `judge.config.json` after the server is available:
 
 ```json
 "sharepoint": {
   "enabled": true,
+  "provider": "mcp",
+  "publishResults": false,
+  "authentication": {
+    "mode": "interactiveBrowser"
+  },
+  "stagingPath": ".sharepoint-cache",
   "siteUrl": "https://contoso.sharepoint.com/sites/ManagerDay",
-  "knowledgeFolder": "Shared Documents/ManagerDay/Knowledge",
-  "submissionsFolder": "Shared Documents/ManagerDay/Submissions",
-  "resultsFolder": "Shared Documents/ManagerDay/Results",
-  "clientId": "<your-entra-app-client-id>",
-  "tenantId": "<your-tenant-id>",
-  "auth": "interactive"
+  "siteId": "<sharepoint-site-id>",
+  "driveId": "<document-library-drive-id>",
+  "knowledgeFolder": "Knowledge",
+  "knowledgeFolderId": "<knowledge-folder-item-id>",
+  "submissionsFolder": "Submissions",
+  "submissionsFolderId": "<submissions-folder-item-id>",
+  "resultsFolder": "Results",
+  "resultsFolderId": "<results-folder-item-id>",
+  "maxDownloadBytes": 104857600,
+  "maxFilesPerRun": 1000
 }
 ```
 
-Each artefact points at its own SharePoint library folder. When enabled, the orchestrator runs `.github/scripts/Sync-SharePoint.ps1 -Action Download` to pull Knowledge and Submissions into the local `knowledgePath`/`submissionsPath`, judges locally, then runs `-Action Upload` to publish the finished run folder under `resultsFolder`. Requires the `PnP.PowerShell` module (`Install-Module PnP.PowerShell -Scope CurrentUser`) and an Entra app registration whose client id is set in `clientId`.
+Stable folder IDs are preferred; paths remain available for MCP servers that only accept paths. On each run, the orchestrator:
+
+1. Triggers delegated browser authentication with a read-only MCP operation.
+2. Discovers the MCP server's tool schemas and verifies the required capabilities.
+3. Creates a new snapshot under `.sharepoint-cache/<timestamp>/`.
+4. Downloads and verifies all accepted Knowledge and Submission files.
+5. Writes `source-manifest.json` with SharePoint item IDs, URLs, versions, ETags, timestamps, and sizes returned by the server.
+6. Passes that manifest into the generated `run-manifest.json` for traceability.
+7. Judges the local snapshot and keeps the finished run under the local `resultsPath`.
+8. Publishes and verifies results only when `publishResults` is true and write tools are available.
+
+The run stops on authentication requests for user-supplied app identifiers, missing read capabilities, unsafe paths, transfer limits, incomplete downloads, or partial uploads. It never judges a partial snapshot or reports a skipped upload as successful.
+
 - **Share it:** clone this repo as a template (replace the `Knowledge/` docs), or package the agents as an hve-core plugin / VS Code extension. See the same doc.
 
 ## How to run

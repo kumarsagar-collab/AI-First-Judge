@@ -1,21 +1,23 @@
 ---
-description: "Judge workshop submissions using the single Manager Day knowledge file, the matching Presales or Delivery rubric, critic verification, and timestamped results."
+description: "Judge Manager Day workshop proposals from local or SharePoint inputs"
 name: "Judge Proposals"
-argument-hint: "(optional) a single submission filename to judge; omit to judge all"
-tools: [read, search, edit, execute, agent]
-agents: [Proposal Judge Orchestrator, Proposal Judge, Proposal Judge Critic]
+argument-hint: "[file-or-team]"
+agent: "Proposal Judge Orchestrator"
 ---
+
+# Judge Proposals
+
 Judge the Manager Day workshop proposals using the Proposal Judge Orchestrator.
 
 ## Task
 
 Delegate to the **Proposal Judge Orchestrator** agent to run the full pipeline:
 
-1. Read `Knowledge/manager-day-contoso-challenges.md` once. It is the single authoritative source for facts, space detection, scenarios, rubrics, and judging signals. Do not use other files as grounding.
-2. Read `judge.config.json` for the per-artefact paths (`knowledgePath`, `submissionsPath`, `resultsPath`), `submissionMode`, and `maxParallelTeams`. Each path may be a local folder or a synced OneDrive/SharePoint folder. If `sharepoint.enabled` is true, first run `.github/scripts/Sync-SharePoint.ps1 -Action Download` to pull Knowledge and Submissions from their SharePoint library folders into the local paths. Discover **teams**: with `submissionMode: "folderPerTeam"` (default) each subfolder of the submissions path is one team, and every accepted file inside it (DOCX, PPTX, HTML, code, SVG, images) is part of that team's submission; loose root files are single-file teams. If `${input:file}` names a file or a team folder, judge only that one; otherwise judge all teams.
-3. Open a timestamped run folder (`Results/run-<timestamp>/`) for this request. Extract each team's folder once (`-Directory '<team folder>' -Recurse`) and reuse the text. Evaluate teams **in parallel** in waves of `maxParallelTeams`: classify each team as Presales or Delivery, score it only against that space's five-criterion rubric, verify independently with the **Proposal Judge Critic**, apply required corrections, then save `<run folder>/<team-folder-name>-evaluation.md`. For raster images, view the image and pass a faithful description to the Judge.
+1. Read `judge.config.json` for the per-artefact paths, submission settings, and SharePoint settings. Follow the orchestrator's SharePoint snapshot protocol when `sharepoint.enabled` is true.
+2. Read the configured `knowledgeFile` once from the completed SharePoint snapshot or local `knowledgePath`. It is the single authoritative source for facts, available workshop spaces, scenarios, rubrics, and judging signals. A source with one complete space rubric is valid and constrains all submissions to that space. Discover **teams** from the same completed source. If `${input:file}` names a file or a team folder, judge only that one; otherwise judge all teams.
+3. Open a timestamped run folder (`Results/run-<timestamp>/`) for this request. Extract each team's accepted files once and reuse the text. Evaluate teams **in parallel** in waves of `maxParallelTeams`: use the only available space or classify each team when both spaces exist, score it only against that space's five-criterion rubric, run the deterministic validator, apply required mechanical corrections, then save `<run folder>/<reportFile>` using the exact collision-safe value from `run-manifest.json`. Run the **Proposal Judge Critic** only when the user requests the optional deeper review. For raster images, view the image and pass a faithful description to the Judge.
 4. Write `<run folder>/00-cross-submission-summary.md` with separate Presales and Delivery score tables and separate learning sections for each space. Never rank, aggregate, or compare teams across spaces. Ground every strength, gap, optimization pattern, security or responsible AI theme, and takeaway in that space's reports.
-5. If `sharepoint.enabled` is true, publish the finished run folder back to SharePoint with `.github/scripts/Sync-SharePoint.ps1 -Action Upload -ResultsRunFolder '<run folder>'`.
+5. If `sharepoint.enabled` and `sharepoint.publishResults` are true, publish and verify the finished run through the configured provider. A read-only provider may still stage and judge inputs when publication is false. Never report a skipped or partial MCP upload as successful.
 
 ## Guardrails
 

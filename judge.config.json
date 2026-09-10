@@ -1,8 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft-07/schema#",
-  "description": "Configuration for the AI-First Proposal Judge. knowledgePath plus knowledgeFile identify the single authoritative grounding file. Point the *Path values at local folders (which may be synced OneDrive/SharePoint folders). To pull/push artefacts directly from SharePoint Online instead, set sharepoint.enabled = true and fill in the sharepoint.* library folders; the *Path values then act as local cache/staging locations. submissionMode 'folderPerTeam' means each immediate subfolder of submissionsPath is one team whose accepted files form that team's submission; loose files at the root are single-file teams. maxParallelTeams bounds concurrent team evaluations. See docs/AUTOMATION-AND-DISTRIBUTION.md.",
   "knowledgePath": "Knowledge",
-  "knowledgeFile": "manager-day-contoso-challenges.md",
+  "knowledgeFile": "contoso-retail-delivery-challenge.html",
   "submissionsPath": "WorkShopSubmission",
   "resultsPath": "Results",
   "timestampResults": true,
@@ -18,13 +17,23 @@
     ".png", ".jpg", ".jpeg", ".gif", ".webp"
   ],
   "sharepoint": {
-    "enabled": false,
-    "siteUrl": "https://contoso.sharepoint.com/sites/ManagerDay",
-    "knowledgeFolder": "Shared Documents/ManagerDay/Knowledge",
-    "submissionsFolder": "Shared Documents/ManagerDay/Submissions",
-    "resultsFolder": "Shared Documents/ManagerDay/Results",
-    "clientId": "",
-    "tenantId": "",
-    "auth": "interactive"
+    "enabled": true,
+    "provider": "mcp",
+    "publishResults": true,
+    "authentication": {
+      "mode": "interactiveBrowser"
+    },
+    "stagingPath": ".sharepoint-cache",
+    "siteUrl": "https://microsoftapc.sharepoint.com/teams/JudgeAI",
+    "siteId": "microsoftapc.sharepoint.com,ed3d64d3-c90c-42cb-9645-0ddd17798913,09259b3f-67ed-4f7d-b3ad-7e153a34874e",
+    "driveId": "b!02Q97QzJy0KWRQ3dF3mJEz-bJQntZ31Ps61-FTo0h05whfxPE3HdR4IxBaXf0ucg",
+    "knowledgeFolder": "Knowledge",
+    "knowledgeFolderId": "016FP5D6SZGXQMHX3EPVHL6RFNJ5W3BRNP",
+    "submissionsFolder": "Submissions",
+    "submissionsFolderId": "016FP5D6X5NDK4UUOMUFF3EBJIBCGN37OK",
+    "resultsFolder": "Results",
+    "resultsFolderId": "016FP5D6W6PCPJXQMH5ZAKDHJSYZVZWBBP",
+    "maxDownloadBytes": 104857600,
+    "maxFilesPerRun": 1000
   }
 }
