@@ -1,5 +1,10 @@
-# Timestamped run outputs (keep the Results folder, ignore generated runs)
-Results/run-*/
+# Keep the Results folder tracked but ignore all its contents
+Results/*
+!Results/.gitkeep
+
+# Keep the WorkShopSubmission folder tracked but ignore all its contents
+WorkShopSubmission/*
+!WorkShopSubmission/.gitkeep
 
 # Secrets and credentials (never commit)
 *.env

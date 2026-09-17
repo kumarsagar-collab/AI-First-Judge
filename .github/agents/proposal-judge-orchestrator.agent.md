@@ -76,6 +76,7 @@ Finalize each report at `<run folder>/<team-folder-name>-evaluation.md` (overwri
 
 Write `<run folder>/00-cross-submission-summary.md`:
 
+- Open with a **"Top Teams (for announcement)"** section at the very top, before the per-space detail. List the **top 3 Delivery** teams and the **top 3 Presales** teams as two separate short lists, each ordered by score **descending** (fewer than three if a space has fewer teams; omit a space with none). For each listed team give its rank, name, and score, plus **one crisp, factual line** stating the strongest evidence-grounded reason it scored highest (cite the specific strength from that team's report — highest-weighted criterion result, scenario coverage, or verified control). Keep it announcement-ready: short, factual, and defensible; no hedging or new claims. Rank **only within a space**; never merge, compare, or declare a single winner across Presales and Delivery.
 - Separate **Presales** and **Delivery** score tables (never combine, rank, or compare across spaces).
 - Per space: common strengths, gaps and pitfalls, cost-optimization patterns, cost/risk-transfer traps, security and Responsible AI themes.
 - Five to seven concrete takeaways per populated space.
@@ -112,7 +113,7 @@ Report the destination; on failure keep the local run folder and report the erro
 - Removing testing, monitoring, rollback, resilience, support, security, privacy, Responsible AI, or human approval triggers a mandatory human-review flag.
 - Security, privacy, or Responsible AI concerns always trigger a human-review flag.
 - Verify that each report uses exactly five criteria from its classified space and that the weighted scores sum to its final score.
-- Never compare a Presales team with a Delivery team. Never declare a winner. Keep each team's evaluation isolated.
+- Never compare a Presales team with a Delivery team. Never declare a single winner across the two spaces. Ranking teams **within** a single space (for example, the top 3 for announcement) is allowed. Keep each team's evaluation isolated.
 
 ## Reporting Back
 

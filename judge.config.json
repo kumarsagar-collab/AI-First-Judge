@@ -8,7 +8,7 @@
   "timestampResults": true,
   "resultsRunPrefix": "run",
   "submissionMode": "folderPerTeam",
-  "maxParallelTeams": 4,
+  "maxParallelTeams": 20,
   "acceptedExtensions": [
     ".docx", ".doc", ".pptx", ".ppt", ".xlsx", ".xls", ".csv",
     ".txt", ".md",
