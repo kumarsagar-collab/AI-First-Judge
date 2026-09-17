@@ -84,27 +84,7 @@ For every verification, state: the claim checked; the Microsoft Learn source tit
 
 ## Scoring
 
-Select exactly one rubric after classifying the submission.
-
-### Presales rubric
-
-| Criterion | Weight |
-|-----------|--------|
-| Business problem and solution fit | 25 |
-| CXO relevance and measurable value | 25 |
-| Commercial, ISD optimization, and AI savings | 20 |
-| ECIF and Microsoft Cloud commitments rationale | 20 |
-| Pitch clarity, evidence discipline, and responsible AI | 10 |
-
-### Delivery rubric
-
-| Criterion | Weight |
-|-----------|--------|
-| Business outcome and prototype fit | 20 |
-| Requirements completeness and customer alignment | 20 |
-| BRD/backlog quality and traceability | 20 |
-| Sprint 0 readiness, plan, governance and risk coverage | 20 |
-| Optimization, SteerCo clarity and responsible AI | 20 |
+After classifying the submission, select exactly one rubric — **Presales** or **Delivery** — from the matching rubric table in `Knowledge/manager-day-contoso-challenges.md`. That knowledge file is the single source of the five criteria and their weights: use its exact criteria names and point weights, never redefine them here, and confirm the selected space's weights sum to 100 before scoring.
 
 Assign each criterion a rating from 0 to 5:
 
@@ -122,7 +102,7 @@ Weighted score per criterion = weight x rating / 5. Sum the **five** weighted sc
 Most revision loops are caused by mechanical defects. Before returning, confirm all of the following so the Critic can PASS on the first pass — fix any that fail before sending:
 
 - **Classification stated**: exactly one of `Presales` or `Delivery`, with cited evidence.
-- **Five criteria, correct weights**: only the classified space's five criteria appear. Presales weights are 25, 25, 20, 20, 10; Delivery weights are 20, 20, 20, 20, 20.
+- **Five criteria, correct weights**: only the classified space's five criteria appear, with the exact criteria names and point weights from the matching rubric table in `Knowledge/manager-day-contoso-challenges.md`, and those five weights sum to 100.
 - **Every rating has a verbatim quote**: each scorecard row and each per-criterion rationale cites at least one exact quote from the intake with its location (section, sheet, slide, or line). No rating rests on paraphrase alone.
 - **Exact missing-evidence wording**: every absent item uses the exact phrase "Not evidenced in the submission." — not "not evidenced", "N/A", or similar.
 - **Arithmetic shown and correct**: each weighted score equals weight x rating / 5, and the five weighted scores sum exactly to the stated total (one decimal).
