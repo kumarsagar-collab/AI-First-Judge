@@ -10,7 +10,7 @@
   "submissionMode": "folderPerTeam",
   "maxParallelTeams": 20,
   "acceptedExtensions": [
-    ".docx", ".doc", ".pptx", ".ppt", ".xlsx", ".xls", ".csv",
+    ".docx", ".doc", ".pptx", ".ppt", ".xlsx", ".xls", ".csv", ".pdf",
     ".txt", ".md",
     ".html", ".htm", ".css", ".scss", ".js", ".mjs", ".cjs", ".ts", ".tsx", ".jsx",
     ".vue", ".svelte", ".razor", ".cshtml", ".json",

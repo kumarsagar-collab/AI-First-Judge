@@ -63,11 +63,23 @@ $script:CodeExtensions = @(
 )
 $script:ImageExtensions = @('.png', '.jpg', '.jpeg', '.gif', '.bmp', '.webp')
 $script:OfficeExtensions = @('.docx', '.doc', '.pptx', '.ppt', '.xlsx', '.xls')
+$script:PdfExtensions = @('.pdf')
 
 # Reused COM instances so a batch of legacy Office files opens one app, not one per file.
 $script:WordApp = $null
 $script:PptApp = $null
 $script:ExcelApp = $null
+
+# Cache whether each Office COM app is even registered on this machine. Checking the
+# ProgID is instant; without it a missing Office would cost a slow launch-fail-retry.
+$script:ComAvailability = @{}
+function Test-ComAvailable {
+    param([string]$ProgId)
+    if (-not $script:ComAvailability.ContainsKey($ProgId)) {
+        $script:ComAvailability[$ProgId] = [bool][Type]::GetTypeFromProgID($ProgId)
+    }
+    return $script:ComAvailability[$ProgId]
+}
 
 function Get-WordApp {
     if (-not $script:WordApp) {
@@ -210,6 +222,10 @@ function Convert-OoxmlPptx {
 
 function Convert-LegacyDoc {
     param([string]$FilePath)
+    if (-not (Test-ComAvailable 'Word.Application')) {
+        Write-Output "===== CONTENT UNAVAILABLE: legacy Word file but Microsoft Word is not installed on this machine. Provide a .docx or a text export. ====="
+        return
+    }
     for ($attempt = 1; $attempt -le 2; $attempt++) {
         $doc = $null
         try {
@@ -233,6 +249,10 @@ function Convert-LegacyDoc {
 
 function Convert-LegacyPpt {
     param([string]$FilePath)
+    if (-not (Test-ComAvailable 'PowerPoint.Application')) {
+        Write-Output "===== CONTENT UNAVAILABLE: legacy PowerPoint file but Microsoft PowerPoint is not installed on this machine. Provide a .pptx or a text/HTML export. ====="
+        return
+    }
     for ($attempt = 1; $attempt -le 2; $attempt++) {
         $pres = $null
         try {
@@ -319,6 +339,10 @@ function Convert-OoxmlXlsx {
 
 function Convert-LegacyXls {
     param([string]$FilePath)
+    if (-not (Test-ComAvailable 'Excel.Application')) {
+        Write-Output "===== CONTENT UNAVAILABLE: legacy Excel file but Microsoft Excel is not installed on this machine. Provide a .xlsx or a .csv export. ====="
+        return
+    }
     for ($attempt = 1; $attempt -le 2; $attempt++) {
         $wb = $null
         try {
@@ -363,6 +387,37 @@ function Write-TextLikeFile {
     Write-Output $content
 }
 
+# Resolve pdftotext (poppler) once. When absent, PDFs fail instantly instead of hanging.
+$script:PdftotextPath = $null
+$script:PdftotextResolved = $false
+function Get-PdftotextPath {
+    if (-not $script:PdftotextResolved) {
+        $cmd = Get-Command 'pdftotext' -CommandType Application -ErrorAction SilentlyContinue | Select-Object -First 1
+        $script:PdftotextPath = if ($cmd) { $cmd.Source } else { $null }
+        $script:PdftotextResolved = $true
+    }
+    return $script:PdftotextPath
+}
+
+function Convert-Pdf {
+    param([string]$FilePath)
+    $tool = Get-PdftotextPath
+    if (-not $tool) {
+        Write-Output "===== CONTENT UNAVAILABLE: PDF file but 'pdftotext' (poppler) is not installed on this machine. Install poppler (winget install oschwartz10612.Poppler or choco install poppler), or provide a .docx/.pptx/.txt/.html export. ====="
+        return
+    }
+    # -layout keeps columns/tables readable; '-' streams UTF-8 text to stdout.
+    $text = & $tool -layout -enc UTF-8 -q -- $FilePath - 2>$null
+    if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace(($text -join ''))) {
+        Write-Output "===== CONTENT UNAVAILABLE: PDF has no extractable text (likely scanned/image-only). View it with a multimodal viewer or request a text/HTML export. ====="
+        return
+    }
+    $body = ($text -join "`n").Trim()
+    $lineCount = ($body -split "`n").Count
+    Write-Output "===== SECTIONS DETECTED: PDF, $lineCount lines (pdftotext -layout; cite by line number) ====="
+    Write-Output $body
+}
+
 function Write-ImageMarker {
     param([string]$FilePath)
     Write-Output "===== IMAGE SUBMISSION: content is not text-extractable by this script ====="
@@ -390,6 +445,7 @@ function Invoke-ExtractOneFile {
         '.ppt'  { Convert-LegacyPpt -FilePath $fullPath }
         '.xlsx' { if ($isZip) { Convert-OoxmlXlsx -FilePath $fullPath } else { Convert-LegacyXls -FilePath $fullPath } }
         '.xls'  { Convert-LegacyXls -FilePath $fullPath }
+        '.pdf'  { Convert-Pdf -FilePath $fullPath }
         default {
             if ($script:CodeExtensions -contains $extension) {
                 $kind = if ($extension -in @('.html', '.htm')) { "HTML wireframe/markup" }
@@ -409,7 +465,7 @@ function Invoke-ExtractOneFile {
 
 # Resolve the set of files to extract from -Directory and/or -Path. Extracting a whole
 # team folder in one process avoids per-file PowerShell/COM startup cost.
-$acceptedAll = $script:CodeExtensions + $script:ImageExtensions + $script:OfficeExtensions
+$acceptedAll = $script:CodeExtensions + $script:ImageExtensions + $script:OfficeExtensions + $script:PdfExtensions
 $targets = [System.Collections.Generic.List[string]]::new()
 
 if ($Directory) {

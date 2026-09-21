@@ -75,21 +75,22 @@ function Get-SafeName {
 
 $teams = [System.Collections.Generic.List[object]]::new()
 
+# Build the work list first (cheap metadata scan), then extract teams concurrently.
+# Each team folder is independent, so on PS7+ extraction runs in parallel across teams
+# (this also overlaps any slow first read of cloud/OneDrive placeholder files).
+$work = [System.Collections.Generic.List[object]]::new()
+
 # One intake file per team subfolder (all accepted files extracted together).
 foreach ($dir in (Get-ChildItem -LiteralPath $submissionsRoot -Directory)) {
     $files = @(Get-ChildItem -LiteralPath $dir.FullName -File -Recurse |
         Where-Object { $accepted -contains $_.Extension.ToLowerInvariant() })
     if ($files.Count -eq 0) { continue }
-    $intakeFile = Join-Path $intake ((Get-SafeName $dir.Name) + '.md')
-    & $extractScript -Directory $dir.FullName -Recurse | Set-Content -LiteralPath $intakeFile -Encoding UTF8
-    $unavailable = @(Select-String -LiteralPath $intakeFile -Pattern 'CONTENT UNAVAILABLE' -SimpleMatch).Count
-    $teams.Add([ordered]@{
-            name        = $dir.Name
-            path        = $dir.FullName
-            intake      = $intakeFile
-            fileCount   = $files.Count
-            files       = @($files.FullName)
-            unavailable = $unavailable
+    $work.Add([pscustomobject]@{
+            Kind       = 'dir'
+            Name       = $dir.Name
+            Path       = $dir.FullName
+            IntakeFile = Join-Path $intake ((Get-SafeName $dir.Name) + '.md')
+            Files      = @($files.FullName)
         })
 }
 
@@ -97,16 +98,58 @@ foreach ($dir in (Get-ChildItem -LiteralPath $submissionsRoot -Directory)) {
 foreach ($file in (Get-ChildItem -LiteralPath $submissionsRoot -File |
         Where-Object { $accepted -contains $_.Extension.ToLowerInvariant() })) {
     $baseName = [System.IO.Path]::GetFileNameWithoutExtension($file.Name)
-    $intakeFile = Join-Path $intake ((Get-SafeName $baseName) + '.md')
-    & $extractScript -Path $file.FullName | Set-Content -LiteralPath $intakeFile -Encoding UTF8
-    $unavailable = @(Select-String -LiteralPath $intakeFile -Pattern 'CONTENT UNAVAILABLE' -SimpleMatch).Count
+    $work.Add([pscustomobject]@{
+            Kind       = 'file'
+            Name       = $baseName
+            Path       = $file.FullName
+            IntakeFile = Join-Path $intake ((Get-SafeName $baseName) + '.md')
+            Files      = @($file.FullName)
+        })
+}
+
+$throttle = [Math]::Max(1, [Math]::Min([Environment]::ProcessorCount, 6))
+
+if ($PSVersionTable.PSVersion.Major -ge 7 -and $work.Count -gt 1) {
+    $results = $work | ForEach-Object -ThrottleLimit $throttle -Parallel {
+        $item = $_
+        $es = $using:extractScript
+        if ($item.Kind -eq 'dir') {
+            & $es -Directory $item.Path -Recurse | Set-Content -LiteralPath $item.IntakeFile -Encoding UTF8
+        }
+        else {
+            & $es -Path $item.Path | Set-Content -LiteralPath $item.IntakeFile -Encoding UTF8
+        }
+        $unavailable = @(Select-String -LiteralPath $item.IntakeFile -Pattern 'CONTENT UNAVAILABLE' -SimpleMatch).Count
+        [pscustomobject]@{
+            Name = $item.Name; Path = $item.Path; Intake = $item.IntakeFile
+            FileCount = $item.Files.Count; Files = $item.Files; Unavailable = $unavailable
+        }
+    }
+}
+else {
+    $results = foreach ($item in $work) {
+        if ($item.Kind -eq 'dir') {
+            & $extractScript -Directory $item.Path -Recurse | Set-Content -LiteralPath $item.IntakeFile -Encoding UTF8
+        }
+        else {
+            & $extractScript -Path $item.Path | Set-Content -LiteralPath $item.IntakeFile -Encoding UTF8
+        }
+        $unavailable = @(Select-String -LiteralPath $item.IntakeFile -Pattern 'CONTENT UNAVAILABLE' -SimpleMatch).Count
+        [pscustomobject]@{
+            Name = $item.Name; Path = $item.Path; Intake = $item.IntakeFile
+            FileCount = $item.Files.Count; Files = $item.Files; Unavailable = $unavailable
+        }
+    }
+}
+
+foreach ($r in ($results | Sort-Object Name)) {
     $teams.Add([ordered]@{
-            name        = $baseName
-            path        = $file.FullName
-            intake      = $intakeFile
-            fileCount   = 1
-            files       = @($file.FullName)
-            unavailable = $unavailable
+            name        = $r.Name
+            path        = $r.Path
+            intake      = $r.Intake
+            fileCount   = $r.FileCount
+            files       = @($r.Files)
+            unavailable = $r.Unavailable
         })
 }
 
