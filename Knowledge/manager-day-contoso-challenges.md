@@ -2,7 +2,10 @@
 
 Authoritative grounding for the Proposal Judge. This is the single source of customer
 facts, rubrics, and judging signals for both workshop areas. Never invent customer facts
-beyond this document.
+beyond this document. Workshop: **GCID Managers Day [FY27 H1] — "Beyond Capacity: The AI
+Advantage."** The challenge is delivered by `contoso-gcid-challenge.html`, a table-gated
+app where each team enters a table number (1–20) that locks it to one assigned room
+(Presales) or scenario (Delivery).
 
 ## How to use this file
 
@@ -10,10 +13,54 @@ beyond this document.
   own space; never compare a Presales team against a Delivery team.
   - **Presales space** → Contoso Pharma deal challenge (100-point rubric, 5 criteria).
   - **Delivery space** → Contoso Retail AI Delivery Sprint 0 challenge (100-point rubric, 5 criteria).
-- Detect the space from the submission: Presales references a CXO "room", a business
-  outcome, deal optimization, ECIF, or a 3-minute pitch. Delivery references a Sprint 0
-  scenario, a Prototype v1, a BRD/backlog, RAID/governance, or a SteerCo readout.
+- **Classify by table number first (authoritative).** Team folders are named `Hyd_Table<N>`
+  where `N` is 1–20. The table number deterministically fixes the space, room/scenario, and
+  therefore the rubric — see **[Table assignments (authoritative gating)](#table-assignments-authoritative-gating)**.
+  **Odd tables are Presales; even tables are Delivery.** Use this mapping directly; do not
+  infer the space when the table number is known.
+- Only if a folder name has **no parseable table number**, fall back to signal detection:
+  Presales references a CXO "room", a business outcome, deal optimization, ECIF, or a
+  3-minute pitch; Delivery references a Sprint 0 scenario, a Prototype v1, a BRD/backlog,
+  RAID/governance, or a SteerCo readout. If still ambiguous, mark **Workshop space
+  unresolved** and request human classification.
 - Each space has its **own** 100-point rubric below. Score against the matching rubric only.
+
+## Table assignments (authoritative gating)
+
+Every team is gated to exactly one room or scenario by its table number. **Odd = Presales**
+(cycles through Rooms 01→05); **even = Delivery** (cycles through Scenarios 01→05). Apply the
+row's rubric and grounding directly; the space and room/scenario are not open to inference
+when the table number is known.
+
+| Team folder | Table | Space | Assigned room / scenario |
+|-------------|-------|-------|---------------------------|
+| `Hyd_Table1`  | 1  | Presales | Room 01 — The Vault (CFO) |
+| `Hyd_Table2`  | 2  | Delivery | Scenario 01 — On-Shelf Availability and Store Replenishment |
+| `Hyd_Table3`  | 3  | Presales | Room 02 — The Factory Floor (COO) |
+| `Hyd_Table4`  | 4  | Delivery | Scenario 02 — Personalized Omnichannel Product Discovery |
+| `Hyd_Table5`  | 5  | Presales | Room 03 — The Storefront (CMO) |
+| `Hyd_Table6`  | 6  | Delivery | Scenario 03 — Customer Care and Order Exception Resolution |
+| `Hyd_Table7`  | 7  | Presales | Room 04 — The Engine Room (CIO) |
+| `Hyd_Table8`  | 8  | Delivery | Scenario 04 — Returns, Fraud, and Retail Loss Reduction |
+| `Hyd_Table9`  | 9  | Presales | Room 05 — The People Hub (CHRO) |
+| `Hyd_Table10` | 10 | Delivery | Scenario 05 — Supplier and Product Onboarding |
+| `Hyd_Table11` | 11 | Presales | Room 01 — The Vault (CFO) |
+| `Hyd_Table12` | 12 | Delivery | Scenario 01 — On-Shelf Availability and Store Replenishment |
+| `Hyd_Table13` | 13 | Presales | Room 02 — The Factory Floor (COO) |
+| `Hyd_Table14` | 14 | Delivery | Scenario 02 — Personalized Omnichannel Product Discovery |
+| `Hyd_Table15` | 15 | Presales | Room 03 — The Storefront (CMO) |
+| `Hyd_Table16` | 16 | Delivery | Scenario 03 — Customer Care and Order Exception Resolution |
+| `Hyd_Table17` | 17 | Presales | Room 04 — The Engine Room (CIO) |
+| `Hyd_Table18` | 18 | Delivery | Scenario 04 — Returns, Fraud, and Retail Loss Reduction |
+| `Hyd_Table19` | 19 | Presales | Room 05 — The People Hub (CHRO) |
+| `Hyd_Table20` | 20 | Delivery | Scenario 05 — Supplier and Product Onboarding |
+
+General rule (for tables beyond this list or to re-derive a row):
+
+- **Odd table `N` → Presales**, room index `((N - 1) / 2) mod 5` over
+  [The Vault, The Factory Floor, The Storefront, The Engine Room, The People Hub].
+- **Even table `N` → Delivery**, scenario index `((N / 2) - 1) mod 5` over Scenarios 01→05
+  in the order listed above.
 
 ## Shared guardrails (both spaces)
 
