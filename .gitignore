@@ -24,9 +24,6 @@ __pycache__/
 *.pyc
 *.egg-info/
 
-# SharePoint local cache/staging
-.sharepoint-cache/
-
 # Local source challenge artifacts
 /Reference/
 

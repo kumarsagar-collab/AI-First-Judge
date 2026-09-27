@@ -14,50 +14,55 @@ Evidence-based judging of workshop proposals. Drop submissions in a folder, run 
 | `Results/` | Generated reports, written to a timestamped `run-<timestamp>/` subfolder per run. |
 | `docs/` | Automation and distribution design. |
 
-Each artefact has its own configurable path in `judge.config.json` — `knowledgePath`, `submissionsPath`, and `resultsPath`. Point them at local folders (which may be synced OneDrive/SharePoint folders), or set `sharepoint.enabled = true` to pull/push each artefact directly from its own **SharePoint Online** library folder (see [SharePoint](#sharepoint-artefacts) below).
+Each artefact has its own configurable path in `judge.config.json` — `knowledgePath`, `submissionsPath`, and `resultsPath`. Point them at local folders.
 
 ### Knowledge source
 
-`Knowledge/manager-day-contoso-challenges.md` is the only grounding source. It contains customer facts, Presales and Delivery space-detection signals, scenarios, both five-criterion rubrics, and judging guidance.
+`Knowledge/manager-day-contoso-challenges.md` is the only grounding source. It contains customer facts, the **table-assignment map** (odd tables = Presales rooms, even tables = Delivery scenarios), Presales and Delivery space-detection signals (fallback only), scenarios, both five-criterion rubrics, and judging guidance.
 
-Each team is either **Presales** or **Delivery**. The Judge classifies the submission from its evidence, applies only that space's 100-point rubric, and never compares scores across the two spaces.
+Each team is either **Presales** or **Delivery**, fixed by its `Hyd_Table<N>` number. The Judge applies that table's 100-point rubric, cites evidence that the team worked its assigned room/scenario, and never compares scores across the two spaces. Signal-based classification is used only when a folder name has no parseable table number.
 
 ## Agents
 
 | Agent | Role |
 |-------|------|
-| **Proposal Judge Orchestrator** | Runs the whole pipeline: grounds on `Knowledge/`, judges all teams in parallel, runs the fast checker, writes reports. |
-| **Proposal Judge** | Scores **one** submission against the rubric with cited evidence, gaps, and flags. |
-| **Proposal Judge Critic** | Optional deep review: independently verifies an evaluation (grounding, evidence, arithmetic, bias) and returns PASS or REVISE. Runs only when you ask. |
+| **Proposal Judge Orchestrator** | Runs the two-phase pipeline: `initialize` primes on `Knowledge/` and config; `judge all submissions` extracts each table into Markdown, judges each table as its text becomes ready, and writes reports plus the cross-table summary. |
+| **Proposal Judge** | Scores **one** table's submission against the rubric fixed by its table number, with cited evidence, gaps, and flags — a quick, lightweight analysis. |
 
-A fast built-in checker (`Test-Evaluation.ps1`) runs automatically on every report — no AI call — to confirm the maths, rubric, and score add up, and to flag anything a human should look at.
+The space and rubric for each team are **fixed by its table number** (odd = Presales, even = Delivery — see [Table gating](#table-gating)), so there is **no critic round and no deterministic validator**. Each judge does a light self-check (five criteria, correct weights, arithmetic sums to the total) as it writes its report.
+
+## Two phases
+
+1. **`initialize`** — the orchestrator reads `judge.config.json` and the knowledge file, confirms both rubrics and the table-assignment map are loaded, counts the `Hyd_Table<N>` folders present, and reports readiness. Nothing is extracted or judged.
+2. **`judge all submissions`** — the orchestrator executes: extract each table into Markdown first, judge each table the moment its Markdown is ready, then run the cross-table evaluation.
+
+## Table gating
+
+Team folders are named `Hyd_Table<N>` (N = 1–20). The table number is the authoritative gate: **odd tables are Presales** (cycling Rooms 01→05), **even tables are Delivery** (cycling Scenarios 01→05). The full 20-row map lives in `Knowledge/manager-day-contoso-challenges.md`. Because the assignment (and therefore the rubric) is known up front, the judge applies it directly instead of inferring the space.
 
 ## Workflow
 
 ```
-Single knowledge file ──► Orchestrator (reads config, opens Results/run-<timestamp>/)
-                      │  extract each team folder once, then judge all teams in parallel:
-                      ▼
-                   Judge (all teams) ──► fast checker ──► run-<timestamp>/<team>-evaluation.md
-                      │
-                      ▼
-             run-<timestamp>/00-cross-submission-summary.md
-                      │
-                      ▼  (optional, on request)
-             Robust critic review of flagged teams
+initialize ──► Orchestrator primes on Knowledge/ + config (no extraction, no judging)
+
+judge all submissions ──► Orchestrator (opens Results/run-<timestamp>/)
+        │  1. extract every Hyd_Table<N> folder → intake/<team>.md (first step)
+        ▼
+   2. judge each table as its Markdown is ready (space/rubric fixed by table number)
+        │     up to maxParallelTeams at once ──► run-<timestamp>/<team>-evaluation.md
+        ▼
+   3. once all table evals exist ──► run-<timestamp>/00-cross-submission-summary.md
 ```
 
-1. Orchestrator reads the single authoritative knowledge file once and reads `judge.config.json`.
-2. It opens **one** timestamped run folder for the request, discovers **teams** (each subfolder of the submissions path), and extracts each team's whole folder in a single pass. Prototypes/wireframes (HTML/code/SVG) are read as source and cited by line; raster images are viewed with a multimodal viewer.
-3. All teams are judged **in parallel** (bounded by `maxParallelTeams`), each fully isolated. The Judge classifies each as Presales or Delivery and applies only the matching five-criterion rubric.
-4. The **fast checker** verifies every report automatically (maths, rubric weights, score total) and flags any team needing a closer human look. Per-team Markdown reports are written to the run folder.
-5. A cross-submission summary opens with a **Top Teams (for announcement)** section listing the top 3 Delivery and top 3 Presales teams in descending score order — each with a 2-3 sentence, evidence-grounded citation covering the submission's most important and impactful areas so a judge can explain the score to the audience — followed by separate Presales and Delivery score tables plus shared takeaways, and the teams recommended for deeper review. Ranking is within a space only; cross-space ranking is prohibited.
-6. **Optional:** ask for a **robust critic review** and the orchestrator runs a deep AI verification of the flagged teams (or all teams) and applies any corrections.
+1. **`initialize`:** the orchestrator reads the single authoritative knowledge file and `judge.config.json`, confirms both rubrics and the table map, and reports readiness.
+2. **Extract first:** on `judge all submissions`, it opens **one** timestamped run folder, discovers **teams** (each `Hyd_Table<N>` subfolder), and extracts each team's whole folder into `intake/<team>.md`. Prototypes/wireframes (HTML/code/SVG) are read as source and cited by line; raster images are viewed with a multimodal viewer.
+3. **Judge as ready:** as soon as a table's Markdown exists, its judge is dispatched with the space and rubric already fixed by the table number (odd = Presales, even = Delivery). Up to `maxParallelTeams` judges run at once, each fully isolated, producing a concise, evidence-cited report.
+4. **Cross-table evaluation:** once every table's report exists, a summary opens with a **Top Teams (for announcement)** section listing the top 3 Delivery and top 3 Presales teams in descending score order — each with a 2-3 sentence, evidence-grounded citation covering the submission's most important and impactful areas — followed by separate Presales and Delivery score tables (with each team's room/scenario), per-space takeaways, and a consolidated list of mandatory human-review flags. Ranking is within a space only; cross-space ranking is prohibited.
 
 ### Why it's fast
 
-- **Fast by default:** judging runs in parallel and the automatic checker is a local script, not an AI call — so a full run finishes quickly. The deeper AI critic is a separate step you run only when you want extra assurance.
-- **Parallel teams:** all teams are judged concurrently instead of one-at-a-time.
+- **Fast by default:** the space and rubric are known from the table number, so there is no critic or validator round — the judge produces a lightweight analysis directly.
+- **Judge as ready:** each table is judged the moment its Markdown is extracted, and up to `maxParallelTeams` run concurrently instead of one-at-a-time.
 - **Extract once, stage once:** each team folder is parsed a single time into `Results/run-<timestamp>/intake/<team>.md` and reused everywhere; one run folder is created per request.
 
 ## Input types
@@ -71,34 +76,17 @@ Each team gets a folder under `WorkShopSubmission/`; drop any mix of the followi
 
 ## Automation & distribution
 
-- **Trigger on file drop:** point `submissionsPath` at a synced OneDrive/SharePoint folder and run `./.github/scripts/Watch-Submissions.ps1` to stage a timestamped run when files land. Full cloud auto-trigger (Power Automate / Logic Apps / Azure Function) is designed in [docs/AUTOMATION-AND-DISTRIBUTION.md](docs/AUTOMATION-AND-DISTRIBUTION.md).
-
-### SharePoint artefacts
-
-To work directly against SharePoint Online instead of a synced folder, edit the `sharepoint` block in `judge.config.json`:
-
-```json
-"sharepoint": {
-  "enabled": true,
-  "siteUrl": "https://contoso.sharepoint.com/sites/ManagerDay",
-  "knowledgeFolder": "Shared Documents/ManagerDay/Knowledge",
-  "submissionsFolder": "Shared Documents/ManagerDay/Submissions",
-  "resultsFolder": "Shared Documents/ManagerDay/Results",
-  "clientId": "<your-entra-app-client-id>",
-  "tenantId": "<your-tenant-id>",
-  "auth": "interactive"
-}
-```
-
-Each artefact points at its own SharePoint library folder. When enabled, the orchestrator runs `.github/scripts/Sync-SharePoint.ps1 -Action Download` to pull Knowledge and Submissions into the local `knowledgePath`/`submissionsPath`, judges locally, then runs `-Action Upload` to publish the finished run folder under `resultsFolder`. Requires the `PnP.PowerShell` module (`Install-Module PnP.PowerShell -Scope CurrentUser`) and an Entra app registration whose client id is set in `clientId`.
-- **Share it:** clone this repo as a template (replace the `Knowledge/` docs), or package the agents as an hve-core plugin / VS Code extension. See the same doc.
+- **Trigger on file drop:** point `submissionsPath` at your local submissions folder and run `./.github/scripts/Watch-Submissions.ps1` to stage a timestamped run when files land.
+- **Share it:** clone this repo as a template (replace the `Knowledge/` docs), or package the agents as an hve-core plugin / VS Code extension.
 
 ## How to run
 
-- Type `/judge-proposals` in chat (optionally name one file), or
-- Pick **Proposal Judge Orchestrator** in the agent picker and say *"Judge all submissions."*
+Two steps, in order:
 
-You get scored reports and a cross-team summary fast. The orchestrator then tells you which teams it recommends for a deeper look; reply *"run the robust critic review"* to have the AI double-check those (or all) teams. Markdown reports are always produced — ask for **DOCX** or **PPTX** and the orchestrator will generate them.
+1. **Initialize:** type `/judge-proposals` and then `initialize` in chat, or pick **Proposal Judge Orchestrator** in the agent picker and say *"initialize."* The agent primes on the knowledge file and rubrics and confirms it is ready.
+2. **Judge:** say *"judge all submissions"* (optionally name one `Hyd_Table<N>` folder). The agent extracts each table into Markdown, judges each table as its text becomes ready against the rubric fixed by its table number, and writes a cross-table summary.
+
+You get scored per-table reports and a cross-table summary with the top 3 teams per space and all mandatory human-review flags. There is no critic round to run. Markdown reports are always produced — ask for **DOCX** or **PPTX** and the orchestrator will generate them.
 
 ## Guardrails
 

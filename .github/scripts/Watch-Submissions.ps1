@@ -1,11 +1,11 @@
 <#
 .SYNOPSIS
-    Watches the submissions folder (local or a synced OneDrive/SharePoint folder)
-    and stages a timestamped run when new files land.
+    Watches the local submissions folder and stages a timestamped run when new
+    files land.
 
 .DESCRIPTION
     A VS Code Copilot agent is interactive: it cannot run headless and wake itself
-    when a cloud file arrives. This script bridges that gap for LOCAL use. It
+    when a file arrives. This script bridges that gap for LOCAL use. It
     watches submissionsPath (from judge.config.json), and when files are added or
     changed it:
 
@@ -16,8 +16,7 @@
       4. Prints the exact chat command to run so a human kicks the AI evaluation.
 
     This keeps the deterministic file handling automated while a human triggers the
-    AI judging step. For fully unattended cloud triggering, see
-    docs/AUTOMATION-AND-DISTRIBUTION.md.
+    AI judging step.
 
 .PARAMETER Once
     Process the current submissions once and exit (no watching). Useful for a

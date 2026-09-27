@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft-07/schema#",
-  "description": "Configuration for the AI-First Proposal Judge. knowledgePath plus knowledgeFile identify the single authoritative grounding file. Point the *Path values at local folders (which may be synced OneDrive/SharePoint folders). To pull/push artefacts directly from SharePoint Online instead, set sharepoint.enabled = true and fill in the sharepoint.* library folders; the *Path values then act as local cache/staging locations. submissionMode 'folderPerTeam' means each immediate subfolder of submissionsPath is one team whose accepted files form that team's submission; loose files at the root are single-file teams. maxParallelTeams bounds concurrent team evaluations. See docs/AUTOMATION-AND-DISTRIBUTION.md.",
+  "description": "Configuration for the AI-First Proposal Judge. knowledgePath plus knowledgeFile identify the single authoritative grounding file. The *Path values point at local folders. submissionMode 'folderPerTeam' means each immediate subfolder of submissionsPath is one team whose accepted files form that team's submission; loose files at the root are single-file teams. maxParallelTeams bounds concurrent team evaluations.",
   "knowledgePath": "Knowledge",
   "knowledgeFile": "manager-day-contoso-challenges.md",
   "submissionsPath": "WorkShopSubmission",
@@ -16,15 +16,5 @@
     ".vue", ".svelte", ".razor", ".cshtml", ".json",
     ".py", ".cs", ".java", ".go", ".rb", ".php", ".sql", ".yaml", ".yml", ".xml", ".svg",
     ".png", ".jpg", ".jpeg", ".gif", ".webp"
-  ],
-  "sharepoint": {
-    "enabled": false,
-    "siteUrl": "https://contoso.sharepoint.com/sites/ManagerDay",
-    "knowledgeFolder": "Shared Documents/ManagerDay/Knowledge",
-    "submissionsFolder": "Shared Documents/ManagerDay/Submissions",
-    "resultsFolder": "Shared Documents/ManagerDay/Results",
-    "clientId": "",
-    "tenantId": "",
-    "auth": "interactive"
-  }
+  ]
 }
