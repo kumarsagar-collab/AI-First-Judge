@@ -20,7 +20,7 @@ Each artefact has its own configurable path in `judge.config.json` — `knowledg
 
 `Knowledge/manager-day-contoso-challenges.md` is the only grounding source. It contains customer facts, the **table-assignment map** (odd tables = Presales rooms, even tables = Delivery scenarios), Presales and Delivery space-detection signals (fallback only), scenarios, both five-criterion rubrics, and judging guidance.
 
-Each team is either **Presales** or **Delivery**, fixed by its `Hyd_Table<N>` number. The Judge applies that table's 100-point rubric, cites evidence that the team worked its assigned room/scenario, and never compares scores across the two spaces. Signal-based classification is used only when a folder name has no parseable table number.
+Each team is either **Presales** or **Delivery**, fixed by its `<City>_Table<N>` number (any city/cohort prefix such as `Blr_`, `Hyd_`, `Noida_`, followed by a table number). The Judge applies that table's 100-point rubric, cites evidence that the team worked its assigned room/scenario, and never compares scores across the two spaces. Signal-based classification is used only when a folder name has no parseable table number.
 
 ## Agents
 
@@ -33,12 +33,12 @@ The space and rubric for each team are **fixed by its table number** (odd = Pres
 
 ## Two phases
 
-1. **`initialize`** — the orchestrator reads `judge.config.json` and the knowledge file, confirms both rubrics and the table-assignment map are loaded, counts the `Hyd_Table<N>` folders present, and reports readiness. Nothing is extracted or judged.
+1. **`initialize`** — the orchestrator reads `judge.config.json` and the knowledge file, confirms both rubrics and the table-assignment map are loaded, counts the `<City>_Table<N>` team folders present across all city cohorts, and reports readiness. Nothing is extracted or judged.
 2. **`judge all submissions`** — the orchestrator executes: extract each table into Markdown first, judge each table the moment its Markdown is ready, then run the cross-table evaluation.
 
 ## Table gating
 
-Team folders are named `Hyd_Table<N>` (N = 1–20). The table number is the authoritative gate: **odd tables are Presales** (cycling Rooms 01→05), **even tables are Delivery** (cycling Scenarios 01→05). The full 20-row map lives in `Knowledge/manager-day-contoso-challenges.md`. Because the assignment (and therefore the rubric) is known up front, the judge applies it directly instead of inferring the space.
+Team folders are named `<City>_Table<N>` — a city/cohort prefix (e.g. `Blr_`, `Hyd_`, `Noida_`) plus a table number `N` (1–20); the `Table` segment is case-insensitive and the prefix varies, so the number is parsed from the trailing digits regardless of the prefix. The table number is the authoritative gate: **odd tables are Presales** (cycling Rooms 01→05), **even tables are Delivery** (cycling Scenarios 01→05). Multiple city cohorts may share a table number (e.g. `Blr_Table1`, `Hyd_table1`, `Noida_Table1`); each is a separate, isolated team mapped to the same room/scenario. The full 20-row map lives in `Knowledge/manager-day-contoso-challenges.md`. Because the assignment (and therefore the rubric) is known up front, the judge applies it directly instead of inferring the space.
 
 ## Workflow
 
@@ -46,7 +46,7 @@ Team folders are named `Hyd_Table<N>` (N = 1–20). The table number is the auth
 initialize ──► Orchestrator primes on Knowledge/ + config (no extraction, no judging)
 
 judge all submissions ──► Orchestrator (opens Results/run-<timestamp>/)
-        │  1. extract every Hyd_Table<N> folder → intake/<team>.md (first step)
+        │  1. extract every <City>_Table<N> folder → intake/<team>.md (first step)
         ▼
    2. judge each table as its Markdown is ready (space/rubric fixed by table number)
         │     up to maxParallelTeams at once ──► run-<timestamp>/<team>-evaluation.md
@@ -55,7 +55,7 @@ judge all submissions ──► Orchestrator (opens Results/run-<timestamp>/)
 ```
 
 1. **`initialize`:** the orchestrator reads the single authoritative knowledge file and `judge.config.json`, confirms both rubrics and the table map, and reports readiness.
-2. **Extract first:** on `judge all submissions`, it opens **one** timestamped run folder, discovers **teams** (each `Hyd_Table<N>` subfolder), and extracts each team's whole folder into `intake/<team>.md`. Prototypes/wireframes (HTML/code/SVG) are read as source and cited by line; raster images are viewed with a multimodal viewer.
+2. **Extract first:** on `judge all submissions`, it opens **one** timestamped run folder, discovers **teams** (each `<City>_Table<N>` subfolder, across all city cohorts), and extracts each team's whole folder into `intake/<team>.md`. Prototypes/wireframes (HTML/code/SVG) are read as source and cited by line; raster images are viewed with a multimodal viewer.
 3. **Judge as ready:** as soon as a table's Markdown exists, its judge is dispatched with the space and rubric already fixed by the table number (odd = Presales, even = Delivery). Up to `maxParallelTeams` judges run at once, each fully isolated, producing a concise, evidence-cited report.
 4. **Cross-table evaluation:** once every table's report exists, a summary opens with a **Top Teams (for announcement)** section listing the top 3 Delivery and top 3 Presales teams in descending score order — each with a 2-3 sentence, evidence-grounded citation covering the submission's most important and impactful areas — followed by separate Presales and Delivery score tables (with each team's room/scenario), per-space takeaways, and a consolidated list of mandatory human-review flags. Ranking is within a space only; cross-space ranking is prohibited.
 
@@ -84,7 +84,7 @@ Each team gets a folder under `WorkShopSubmission/`; drop any mix of the followi
 Two steps, in order:
 
 1. **Initialize:** type `/judge-proposals` and then `initialize` in chat, or pick **Proposal Judge Orchestrator** in the agent picker and say *"initialize."* The agent primes on the knowledge file and rubrics and confirms it is ready.
-2. **Judge:** say *"judge all submissions"* (optionally name one `Hyd_Table<N>` folder). The agent extracts each table into Markdown, judges each table as its text becomes ready against the rubric fixed by its table number, and writes a cross-table summary.
+2. **Judge:** say *"judge all submissions"* (optionally name one `<City>_Table<N>` folder). The agent extracts each table into Markdown, judges each table as its text becomes ready against the rubric fixed by its table number, and writes a cross-table summary.
 
 You get scored per-table reports and a cross-table summary with the top 3 teams per space and all mandatory human-review flags. There is no critic round to run. Markdown reports are always produced — ask for **DOCX** or **PPTX** and the orchestrator will generate them.
 

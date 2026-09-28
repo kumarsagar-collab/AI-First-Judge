@@ -13,9 +13,15 @@ app where each team enters a table number (1–20) that locks it to one assigned
   own space; never compare a Presales team against a Delivery team.
   - **Presales space** → Contoso Pharma deal challenge (100-point rubric, 5 criteria).
   - **Delivery space** → Contoso Retail AI Delivery Sprint 0 challenge (100-point rubric, 5 criteria).
-- **Classify by table number first (authoritative).** Team folders are named `Hyd_Table<N>`
-  where `N` is 1–20. The table number deterministically fixes the space, room/scenario, and
-  therefore the rubric — see **[Table assignments (authoritative gating)](#table-assignments-authoritative-gating)**.
+- **Classify by table number first (authoritative).** Team folders are named
+  `<City>_Table<N>` — a city/cohort prefix (for example `Blr_`, `Hyd_`, `Noida_`) followed by
+  `Table<N>`, where `N` is 1–20. The `Table` segment is case-insensitive (`Table` or `table`)
+  and the city prefix varies, so **parse `N` from the trailing digits regardless of the
+  prefix**. Multiple city cohorts may share the same table number — e.g. `Blr_Table1`,
+  `Hyd_table1`, and `Noida_Table1` are three separate teams that all map to Table 1; evaluate
+  each as its own isolated team and never merge or compare them. The table number
+  deterministically fixes the space, room/scenario, and therefore the rubric — see
+  **[Table assignments (authoritative gating)](#table-assignments-authoritative-gating)**.
   **Odd tables are Presales; even tables are Delivery.** Use this mapping directly; do not
   infer the space when the table number is known.
 - Only if a folder name has **no parseable table number**, fall back to signal detection:
@@ -30,9 +36,11 @@ app where each team enters a table number (1–20) that locks it to one assigned
 Every team is gated to exactly one room or scenario by its table number. **Odd = Presales**
 (cycles through Rooms 01→05); **even = Delivery** (cycles through Scenarios 01→05). Apply the
 row's rubric and grounding directly; the space and room/scenario are not open to inference
-when the table number is known.
+when the table number is known. The **Example folder** column below shows the `Hyd_` cohort
+for illustration only; any `<City>_Table<N>` folder (e.g. `Blr_Table<N>`, `Noida_Table<N>`)
+maps to the same row by its table number `N` alone.
 
-| Team folder | Table | Space | Assigned room / scenario |
+| Example folder | Table | Space | Assigned room / scenario |
 |-------------|-------|-------|---------------------------|
 | `Hyd_Table1`  | 1  | Presales | Room 01 — The Vault (CFO) |
 | `Hyd_Table2`  | 2  | Delivery | Scenario 01 — On-Shelf Availability and Store Replenishment |

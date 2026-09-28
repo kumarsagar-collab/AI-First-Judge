@@ -20,7 +20,7 @@ If the user types `judge all submissions` without having initialized, silently r
 
 - **Config** from `judge.config.json` (repo root): `knowledgePath`, `knowledgeFile`, `submissionsPath`, and `resultsPath`, plus `timestampResults`, `resultsRunPrefix`, `submissionMode`, `maxParallelTeams`, and `acceptedExtensions`. Read it first; fall back to `Knowledge/manager-day-contoso-challenges.md`, `WorkShopSubmission/`, `Results/`, `submissionMode: "folderPerTeam"`, and `maxParallelTeams: 4` if a field is missing.
 - **Grounding** only from `Knowledge/manager-day-contoso-challenges.md`: customer facts, the authoritative **table-assignment map** (odd = Presales, even = Delivery, room/scenario fixed per table number), scenarios, both rubrics, and judging signals.
-- **Submissions**: with `submissionMode: "folderPerTeam"` (default), each immediate subfolder of `submissionsPath` is **one team**, named `Hyd_Table<N>` (N = 1–20). Every accepted file inside it (any mix of DOCX, PPTX, TXT, MD, HTML, code, SVG, or raster images) is part of that team's submission. The **table number `N` fixes the space and rubric** via the knowledge file's table-assignment map — you do not infer the space when `N` is known. Loose accepted files at the root are treated as single-file teams for backward compatibility.
+- **Submissions**: with `submissionMode: "folderPerTeam"` (default), each immediate subfolder of `submissionsPath` is **one team**, named `<City>_Table<N>` — a city/cohort prefix (e.g. `Blr_`, `Hyd_`, `Noida_`) followed by `Table<N>` (N = 1–20; the `Table` segment is case-insensitive and the city prefix varies). Every accepted file inside it (any mix of DOCX, PPTX, TXT, MD, HTML, code, SVG, or raster images) is part of that team's submission. The **trailing table number `N` fixes the space and rubric** via the knowledge file's table-assignment map — parse `N` from the folder name regardless of the city prefix, and do not infer the space when `N` is known. Multiple city cohorts may share a table number (e.g. `Blr_Table1`, `Hyd_table1`, `Noida_Table1`); each is a separate, isolated team that maps to the same room/scenario. Loose accepted files at the root are treated as single-file teams for backward compatibility.
 - **Output** to a timestamped run folder under `resultsPath` (e.g. `Results/run-20260903-142530/`): one Markdown report per team plus a cross-table evaluation summary. DOCX/PPTX only when the user asks.
 - **Subagent**: `Proposal Judge` scores one table's submission against the rubric fixed by its table number. There is **no critic round and no deterministic validator** — the space and rubric are known in advance from the table number, so each judge produces a quick, lightweight, evidence-cited analysis directly.
 
@@ -37,7 +37,7 @@ When the user types `initialize` (or asks you to initialize), load context into 
 
    Confirm it holds: both rubrics (Presales 25/25/20/20/10, Delivery 20/20/20/20/20), the six rooms with outcomes/strength scores, the five delivery scenarios, and the **table-assignment map**. If anything is missing, stop and report.
 3. **Hold the rules in memory** (see [Rules You Enforce](#rules-you-enforce)) and the table-number → space/rubric mapping (odd = Presales, even = Delivery).
-4. **Report readiness** briefly: confirm the knowledge file and both rubrics are loaded, the table map is understood, how many `Hyd_Table<N>` folders currently exist under the submissions path (a cheap directory count — no extraction), and that you are ready. Tell the user to type **`judge all submissions`** to execute. End the turn.
+4. **Report readiness** briefly: confirm the knowledge file and both rubrics are loaded, the table map is understood, how many `<City>_Table<N>` team folders currently exist under the submissions path (a cheap directory count across all city cohorts — no extraction), and that you are ready. Tell the user to type **`judge all submissions`** to execute. End the turn.
 
 ## Phase 2 — `judge all submissions` (execute)
 
@@ -47,7 +47,7 @@ If Phase 1 was skipped, run it now (silently) before continuing.
 
 ### 2.1 Extract inputs into Markdown (first process)
 
-Extraction into Markdown is the **first execution step**. Run the staging script once. It creates the timestamped run folder, extracts every `Hyd_Table<N>` folder into `intake/<team>.md`, and writes `run-manifest.json`:
+Extraction into Markdown is the **first execution step**. Run the staging script once. It creates the timestamped run folder, extracts every `<City>_Table<N>` team folder (all city cohorts) into `intake/<team>.md`, and writes `run-manifest.json`:
 
 ```powershell
 & '.github/scripts/New-JudgingRun.ps1'
@@ -59,9 +59,9 @@ Run this **exactly once** per request. To judge a single table, pass `-Submissio
 
 As soon as a table's `intake/<team>.md` exists, kick off its judge — do not wait for the whole set. Dispatch the **Proposal Judge** subagent for up to `maxParallelTeams` teams at once and keep the pipeline full: as each judge returns, start the next waiting table so judging overlaps extraction and other judges. Reuse the intake cache; never re-extract.
 
-Per team pass, give the judge: the team folder name (`Hyd_Table<N>`), its **table number `N`**, the **space and assigned room/scenario derived from `N`** via the knowledge map (odd = Presales, even = Delivery), its file paths, the intake `.md` path and text, the full knowledge contents, and (for images) your multimodal description. The judge does **not** infer the space — it is fixed by the table number. Instruct the judge to produce a **quick, lightweight analysis**: score the five criteria of the fixed rubric with a one-line evidence citation each, list the top gaps, and raise any mandatory human-review flags — concise, not exhaustive.
+Per team pass, give the judge: the team folder name (`<City>_Table<N>`), its **table number `N`** (the trailing digits, parsed regardless of the city prefix), the **space and assigned room/scenario derived from `N`** via the knowledge map (odd = Presales, even = Delivery), its file paths, the intake `.md` path and text, the full knowledge contents, and (for images) your multimodal description. The judge does **not** infer the space — it is fixed by the table number. Instruct the judge to produce a **quick, lightweight analysis**: score the five criteria of the fixed rubric with a one-line evidence citation each, list the top gaps, and raise any mandatory human-review flags — concise, not exhaustive.
 
-Derive `N` from the folder name (`Hyd_Table7` → 7). If a folder name has no parseable table number, tell the judge to fall back to signal-based classification and flag it for human review. As each judge returns, write its report to `<run folder>/<team-folder-name>-evaluation.md` (loose single-file team → file basename).
+Derive `N` from the trailing digits of the folder name, ignoring the city prefix and case (`Hyd_table7` → 7, `Blr_Table7` → 7, `Noida_Table7` → 7). If a folder name has no parseable table number, tell the judge to fall back to signal-based classification and flag it for human review. As each judge returns, write its report to `<run folder>/<team-folder-name>-evaluation.md` (loose single-file team → file basename); the full folder name keeps same-numbered teams from different cities in separate report files.
 
 Keep teams isolated: never let one team's facts, quotes, or scores appear in another's. Preserve every human-review flag and instruction-override flag verbatim. If a team's intake shows `CONTENT UNAVAILABLE`, tell its judge to score that deliverable **Not evidenced** and flag it — never guess. For an `IMAGE SUBMISSION` marker, view the image yourself and pass a faithful text description; if you cannot, mark it Not evidenced.
 
