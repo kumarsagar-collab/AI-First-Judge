@@ -73,6 +73,21 @@ function Get-SafeName {
     return ($Name -replace '[^A-Za-z0-9._-]', '_')
 }
 
+function Get-TableNumber {
+    # Parse the trailing table number from a team folder name, ignoring the
+    # city/cohort prefix and case (Hyd_table4 -> 4, Blr_Table4 -> 4). Returns
+    # 'unresolved' when there is no trailing number to gate on.
+    param([string]$Name)
+    $m = [regex]::Match($Name, '(\d+)\s*$')
+    if ($m.Success) { return $m.Groups[1].Value }
+    return 'unresolved'
+}
+
+# Run-scoped provenance nonce. Stamped into every intake banner so a judge that
+# ever cites text from a sibling team's file (same table number, near-identical
+# deck) can detect the mismatch. Four hex chars is enough to disambiguate a run.
+$nonce = (Get-Random -Minimum 4096 -Maximum 65535).ToString('x4')
+
 $teams = [System.Collections.Generic.List[object]]::new()
 
 # Build the work list first (cheap metadata scan), then extract teams concurrently.
@@ -88,6 +103,7 @@ foreach ($dir in (Get-ChildItem -LiteralPath $submissionsRoot -Directory)) {
     $work.Add([pscustomobject]@{
             Kind       = 'dir'
             Name       = $dir.Name
+            Table      = (Get-TableNumber $dir.Name)
             Path       = $dir.FullName
             IntakeFile = Join-Path $intake ((Get-SafeName $dir.Name) + '.md')
             Files      = @($files.FullName)
@@ -101,6 +117,7 @@ foreach ($file in (Get-ChildItem -LiteralPath $submissionsRoot -File |
     $work.Add([pscustomobject]@{
             Kind       = 'file'
             Name       = $baseName
+            Table      = (Get-TableNumber $baseName)
             Path       = $file.FullName
             IntakeFile = Join-Path $intake ((Get-SafeName $baseName) + '.md')
             Files      = @($file.FullName)
@@ -113,30 +130,25 @@ if ($PSVersionTable.PSVersion.Major -ge 7 -and $work.Count -gt 1) {
     $results = $work | ForEach-Object -ThrottleLimit $throttle -Parallel {
         $item = $_
         $es = $using:extractScript
-        if ($item.Kind -eq 'dir') {
-            & $es -Directory $item.Path -Recurse | Set-Content -LiteralPath $item.IntakeFile -Encoding UTF8
-        }
-        else {
-            & $es -Path $item.Path | Set-Content -LiteralPath $item.IntakeFile -Encoding UTF8
-        }
+        $nonce = $using:nonce
+        $banner = "<!-- TEAM: $($item.Name) | TABLE: $($item.Table) | RUN-NONCE: $nonce -->"
+        $body = if ($item.Kind -eq 'dir') { & $es -Directory $item.Path -Recurse } else { & $es -Path $item.Path }
+        Set-Content -LiteralPath $item.IntakeFile -Value (@($banner, '') + $body) -Encoding UTF8
         $unavailable = @(Select-String -LiteralPath $item.IntakeFile -Pattern 'CONTENT UNAVAILABLE' -SimpleMatch).Count
         [pscustomobject]@{
-            Name = $item.Name; Path = $item.Path; Intake = $item.IntakeFile
+            Name = $item.Name; Table = $item.Table; Path = $item.Path; Intake = $item.IntakeFile
             FileCount = $item.Files.Count; Files = $item.Files; Unavailable = $unavailable
         }
     }
 }
 else {
     $results = foreach ($item in $work) {
-        if ($item.Kind -eq 'dir') {
-            & $extractScript -Directory $item.Path -Recurse | Set-Content -LiteralPath $item.IntakeFile -Encoding UTF8
-        }
-        else {
-            & $extractScript -Path $item.Path | Set-Content -LiteralPath $item.IntakeFile -Encoding UTF8
-        }
+        $banner = "<!-- TEAM: $($item.Name) | TABLE: $($item.Table) | RUN-NONCE: $nonce -->"
+        $body = if ($item.Kind -eq 'dir') { & $extractScript -Directory $item.Path -Recurse } else { & $extractScript -Path $item.Path }
+        Set-Content -LiteralPath $item.IntakeFile -Value (@($banner, '') + $body) -Encoding UTF8
         $unavailable = @(Select-String -LiteralPath $item.IntakeFile -Pattern 'CONTENT UNAVAILABLE' -SimpleMatch).Count
         [pscustomobject]@{
-            Name = $item.Name; Path = $item.Path; Intake = $item.IntakeFile
+            Name = $item.Name; Table = $item.Table; Path = $item.Path; Intake = $item.IntakeFile
             FileCount = $item.Files.Count; Files = $item.Files; Unavailable = $unavailable
         }
     }
@@ -145,6 +157,7 @@ else {
 foreach ($r in ($results | Sort-Object Name)) {
     $teams.Add([ordered]@{
             name        = $r.Name
+            table       = $r.Table
             path        = $r.Path
             intake      = $r.Intake
             fileCount   = $r.FileCount
@@ -162,6 +175,7 @@ if ($teams.Count -eq 0) {
 $manifest = [ordered]@{
     runId           = "$prefix-$stamp"
     createdUtc      = (Get-Date).ToUniversalTime().ToString('o')
+    runNonce        = $nonce
     submissionsPath = $submissionsRoot
     resultsPath     = $runFolder
     intakePath      = $intake
@@ -170,7 +184,8 @@ $manifest = [ordered]@{
 $manifest | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath (Join-Path $runFolder 'run-manifest.json') -Encoding UTF8
 
 Write-Output "RUN FOLDER: $runFolder"
+Write-Output "RUN NONCE: $nonce"
 foreach ($team in $teams) {
     $flag = if ($team.unavailable -gt 0) { " (CONTENT UNAVAILABLE x$($team.unavailable))" } else { '' }
-    Write-Output ("TEAM: {0} | files={1} | intake={2}{3}" -f $team.name, $team.fileCount, $team.intake, $flag)
+    Write-Output ("TEAM: {0} | table={1} | files={2} | intake={3}{4}" -f $team.name, $team.table, $team.fileCount, $team.intake, $flag)
 }
